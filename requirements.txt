@@ -1,4 +1,4 @@
 # Three dimension arrays
 xarray
 tensorly
-dateutil.parser
+python-dateutil
