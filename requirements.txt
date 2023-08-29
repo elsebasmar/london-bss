@@ -2,3 +2,6 @@
 xarray
 tensorly
 python-dateutil
+google.cloud.bigquery
+colorama
+pyarrow
