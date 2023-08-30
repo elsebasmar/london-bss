@@ -1,6 +1,9 @@
 raw_data/
 data/
 
+# ignore csv
+*.csv
+
 # Python virtual environment
 .python-version
 
