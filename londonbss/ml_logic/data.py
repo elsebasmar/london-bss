@@ -63,8 +63,8 @@ def get_net_balance(df: pd.DataFrame) -> pd.DataFrame:
     destination = pd.pivot_table(df, values='nooftrips', index=['startdate'],columns=['endstation'], aggfunc="sum").fillna(0)
 
     # Lower case Stations
-    origin.columns= origin.columns.str.strip().str.lower().str.replace(',',' ').str.replace('.','').str.replace('(','').str.replace(')','').str.replace(' ','_').str.replace("'","")
-    destination.columns= destination.columns.str.strip().str.lower().str.replace(',',' ').str.replace('.','').str.replace('(','').str.replace(')','').str.replace(' ','_').str.replace("'","")
+    origin.columns= origin.columns.str.strip().str.lower().str.replace(',',' ').str.replace('.','').str.replace('(','').str.replace(')','').str.replace('&','').str.replace(' ','_').str.replace("'","")
+    destination.columns= destination.columns.str.strip().str.lower().str.replace(',',' ').str.replace('.','').str.replace('(','').str.replace(')','').str.replace('&','').str.replace(' ','_').str.replace("'","")
 
     # Eliminating double station
     ori_uniq_stations = pd.DataFrame(pd.DataFrame(origin.columns)['startstation'].value_counts()).reset_index()
@@ -87,7 +87,43 @@ def get_net_balance(df: pd.DataFrame) -> pd.DataFrame:
 
     print("✅ Balance matrix created")
 
-    return net_balance
+    ## TEMPORARY
+    # Get features from file
+    files_path2 ='../../raw_data/data_1year/'
+
+    # Load features
+    features_preproc = pd.read_csv(files_path2 + 'final_features_preproc_12m.csv')
+    features_preproc.set_index(features_preproc.columns[0],inplace=True)
+
+    # Change 2s
+    features_preproc["event_title_nan"] = features_preproc["event_title_nan"].apply(lambda x: 1 if x>=1 else 0)
+
+    # Change names
+    features_preproc.rename(columns={"event_title_nan": "no_event"}, inplace=True)
+
+    #Drop Columns
+    features_preproc.drop(columns=['minute','second','London_zone_London_all'], inplace=True)
+
+    features_preproc.index = pd.to_datetime(features_preproc.index)
+
+    df = net_balance.join(features_preproc)
+
+    df=df.dropna()
+
+    # Converting the index as date
+    df.index = pd.to_datetime(df.index)
+
+    # Columns to add
+    columns_add = list(net_balance.columns) + FEATURES_ADDED
+
+    df = df[columns_add]
+
+    df['hour'] = df.index.hour
+    df['weekday'] = df.index.dayofweek
+    df['day'] = df.index.day
+    df['month'] = df.index.month
+
+    return df
 
 def load_data_to_bq(
         data: pd.DataFrame,

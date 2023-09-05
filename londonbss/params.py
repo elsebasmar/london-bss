@@ -32,10 +32,12 @@ DTYPES_RAW = {
     "_EndStationName": "object",
     "_Nooftrips": "int8"
 }
+FEATURES_ADDED = ['temperature', 'rainfall', 'snowfall',
+                    'cloudcover','wind_speed', 'wind_direction','weekday',
+                    'strike', 'school_holidays']
 
+LOCAL_REGISTRY_PATH =  os.path.join(os.path.expanduser('~'), "code", "elsebasmar", "london-bss","training_outputs")
 
-
-# LOCAL_REGISTRY_PATH =  os.path.join(os.path.expanduser('~'), ".lewagon", "mlops", "training_outputs")
 # COLUMN_NAMES_RAW = ['fare_amount','pickup_datetime', 'pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude', 'passenger_count']
 
 # DTYPES_PROCESSED = np.float32

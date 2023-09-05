@@ -29,7 +29,7 @@ def initialize_model(input_shape: tuple) -> Model:
     model.add(layers.Dropout(rate=0.2))
     model.add(layers.Dense(1, activation="linear"))
 
-    print("✅ Model initialized")
+    print("\n✅ Model initialized")
 
     return model
 
@@ -40,7 +40,7 @@ def compile_model(model: Model, learning_rate=0.01) -> Model:
     optimizer = optimizers.Adam(learning_rate=learning_rate)
     model.compile(loss="mean_squared_error", optimizer=optimizer, metrics=["mae"])
 
-    print("✅ Model compiled")
+    print("\n✅ Model compiled")
 
     return model
 
@@ -69,12 +69,12 @@ def train_model(
         y,
         validation_data=validation_data,
         validation_split=validation_split,
-        epochs=50,
+        epochs=10,
         batch_size=batch_size,
         callbacks=[es],
-        verbose=0
+        verbose=1
     )
 
-    print(f"✅ Model trained on {len(X)} rows with min val MAE: {round(np.min(history.history['val_mae']), 2)}")
+    print(f"\n✅ Model trained on {len(X)} rows with min val MAE: {round(np.min(history.history['val_mae']), 2)}")
 
     return model, history
