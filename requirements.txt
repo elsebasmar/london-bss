@@ -8,5 +8,5 @@ pyarrow
 
 
 # Google Cloud
-google.cloud
+google-cloud-storage
 protobuf==3.20.1
