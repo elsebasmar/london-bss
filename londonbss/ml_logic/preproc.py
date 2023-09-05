@@ -69,6 +69,7 @@ def encode_events_zone(X: pd.DataFrame):
             london_loc.append('Other')
 
     X["London_zone"] = london_loc
+    X.drop(columns=["event_latitude", "event_longitude"], inplace=True)
     print("london_loc", X.shape)
     return X
 
@@ -113,12 +114,10 @@ def encoding_strings(text):
 
 X = X.reset_index()
 def encode_event_title(X: pd.DataFrame):
-    # X = X.reset_index()
-    # X = X.set_index('index')
-    X = X.groupby("timestamp").sum()
     X['event_title'] = X['event_title'].fillna(0)
     X['event_title'] = X['event_title'].apply(encoding_strings)
     # X.drop(columns = ["event_title"], inplace = True)
+    X = X.groupby("timestamp").sum()
     print("event_encoding", X.shape)
     final_main_index = X.index
     print("initial main index", final_main_index)
