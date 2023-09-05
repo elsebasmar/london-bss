@@ -39,7 +39,7 @@ def load_model(stage:str, n_station:str) -> keras.Model :
 
         print("✅ Model loaded from local disk")
 
-        return most_recent_model_path_on_disk
+        return latest_model
 
     # elif MODEL_TARGET == "gcs":
     #     # 🎁 We give you this piece of code as a gift. Please read it carefully! Add a breakpoint if needed!

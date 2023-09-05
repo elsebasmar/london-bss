@@ -191,7 +191,7 @@ def train(
     print(X_test.shape, y_test.shape)
 
     # Train model using `model.py`
-    model = load_model()
+    model = load_model(stage='production', n_station=station)
 
     if model is None:
         model = initialize_model(input_shape=X_val_train.shape[1:])
