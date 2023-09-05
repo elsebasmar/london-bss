@@ -16,8 +16,8 @@ bank_holidays_1['date']=pd.to_datetime(bank_holidays_1['date'])
 bank_holidays_1_filtered=bank_holidays_1[bank_holidays_1['date'].dt.to_period('Y')<='2023']
 bank_holidays_1_filtered=bank_holidays_1_filtered.drop(columns=['notes','bunting'])
 bank_holidays_1_filtered.loc[42, 'date'] = "2023-01-01"
-
-url_2='../../raw_data/UK_Bank_Holidays_2.csv'
+print(__file__)
+url_2='raw_data/UK_Bank_Holidays_2.csv'
 bank_holidays_2=pd.read_csv(url_2)
 bank_holidays_2=bank_holidays_2[bank_holidays_2['Bank Holiday']==1]
 bank_holidays_2['Date']=pd.to_datetime(bank_holidays_2['Date'])
@@ -41,7 +41,7 @@ bank_holidays_fv['Longitude']='London-wide'
 bank_holidays_fv=bank_holidays_fv.reset_index(drop=True)
 
 ## Events
-url_3='../../raw_data/London_Events_v4.csv'
+url_3='raw_data/London_Events_v4.csv'
 london_events=pd.read_csv(url_3)
 london_events=london_events.dropna()
 london_events_filtered=london_events[london_events['start_date']!='Cancelled']
@@ -52,7 +52,7 @@ london_events_filtered['end_date']=pd.to_datetime(london_events_filtered['end_da
 all_events_df=pd.concat([bank_holidays_fv,london_events_filtered],axis=0)
 all_events_df["date"] = all_events_df["start_date"]
 all_events_df=all_events_df.reset_index(drop=True)
-all_events_df.to_csv('../../raw_data/all_events_df.csv')
+all_events_df.to_csv('raw_data/all_events_df.csv')
 
 # GET WEATHER DATA
 ## Get daily data from the API
@@ -114,7 +114,7 @@ weather_data['date'] = weather_data['timestamp'].dt.date # add date column for f
 
 ## Merge daily and hourly dfs
 weather_data = weather_data.merge(sun_df)
-weather_data.to_csv('../../raw_data/weather_data.csv')
+weather_data.to_csv('raw_data/weather_data.csv')
 print(weather_data.head())
 print(weather_data.columns)
 
@@ -182,17 +182,24 @@ weather_events_data["lockdown"] = weather_events_data["date"].apply(lockdown_dat
 
 
 ## School holidays
-school_holidays = pd.read_csv("../../raw_data/school_holidays.csv")
+school_holidays = pd.read_csv("raw_data/school_holidays.csv")
 school_holidays["date"] = pd.to_datetime(school_holidays["date"])
 weather_events_data = weather_events_data.merge(school_holidays, on="date", how="left")
 
 
 ## Add tube and train strikes
-strikes = pd.read_csv("../../raw_data/strikes.csv")
+strikes = pd.read_csv("raw_data/strikes.csv")
 strikes["date"] = pd.to_datetime(strikes["date"])
 weather_events_data = weather_events_data.merge(strikes, on="date", how="left")
 weather_events_data = weather_events_data.set_index("timestamp")
+
+
+
+## Drop columns
+weather_events_data= weather_events_data.drop(columns=['sunrise', 'sunset', 'sunrise_datetime',
+       'sunset_datetime'])
 print(weather_events_data.head())
+print(weather_events_data.columns)
 
 ## Export final df to raw_data folder
-weather_events_data.to_csv('../../raw_data/final_features_df.csv')
+weather_events_data.to_csv('raw_data/final_features_df.csv')
