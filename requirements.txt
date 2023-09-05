@@ -5,3 +5,8 @@ python-dateutil
 google.cloud.bigquery
 colorama
 pyarrow
+
+
+# Google Cloud
+google.cloud
+protobuf==3.20.1

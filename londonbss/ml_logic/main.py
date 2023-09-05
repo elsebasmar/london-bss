@@ -7,9 +7,10 @@ from dateutil.parser import parse
 
 from londonbss.params import *
 from londonbss.ml_logic.data import get_data_with_cache, clean_data, get_net_balance, load_data_to_bq
-from londonbss.ml_logic.model import initialize_model, compile_model, train_model, evaluate_model
+from londonbss.ml_logic.model import initialize_model, compile_model, train_model
+from sklearn.preprocessing import RobustScaler
 # from taxifare.ml_logic.preprocessor import preprocess_features
-# from taxifare.ml_logic.registry import load_model, save_model, save_results
+from londonbss.ml_logic.registry import load_model, save_model, save_results
 # from taxifare.ml_logic.registry import mlflow_run, mlflow_transition_model
 
 def preprocess(min_date:str = '2022-01-01', max_date:str = '2023-01-01') -> None:
@@ -55,18 +56,21 @@ def preprocess(min_date:str = '2022-01-01', max_date:str = '2023-01-01') -> None
 
     print("✅ preprocess() done \n")
 
+#Define the station
+
 def train(
         min_date:str = '2022-01-01',
         max_date:str = '2023-01-01',
         split_ratio: float = 0.02, # 0.02 represents ~ 1 month of validation data on a 2009-2015 train set
         learning_rate=0.01,
         batch_size = 20,
-        patience = 10
+        patience = 10,
+        station = 'abbey_orchard_street__westminster'
     ) -> float:
 
     """
     - Download processed data from your BQ table (or from cache if it exists)
-    - Train on the preprocessed dataset (which should be ordered by date)
+    - Train on the preprocessed dataset based on the station (which should be ordered by date)
     - Store training results and model weights
 
     Return val_mae as a float
@@ -94,57 +98,189 @@ def train(
         gcp_project=GCP_PROJECT,
         query=query,
         cache_path=data_processed_cache_path,
-        data_has_header=False
+        data_has_header=True
     )
 
     if data_processed.shape[0] < 10:
         print("❌ Not enough processed data retrieved to train on")
         return None
 
+    # Create data frame to train
+    station_list = [station]
+    columns_add = station_list + FEATURES_ADDED
+    df = data_processed[columns_add]
+
     # Create (X_train_processed, y_train, X_val_processed, y_val)
-    train_length = int(len(data_processed)*(1-split_ratio))
+    import math
+    # Get/Compute the number of rows to train the model on
+    training_data_len = math.ceil(len(df) *.8) # taking 90% of data to train and 10% of data to test
+    testing_data_len = len(df) - training_data_len
 
-    data_processed_train = data_processed.iloc[:train_length, :].sample(frac=1).to_numpy()
-    data_processed_val = data_processed.iloc[train_length:, :].sample(frac=1).to_numpy()
+    time_steps = 24
+    train, test = df.iloc[0:training_data_len], df.iloc[(training_data_len-time_steps):len(df)]
 
-    X_train_processed = data_processed_train[:, :-1]
-    y_train = data_processed_train[:, -1]
+    print(Fore.MAGENTA + "\n✅ Train and test sets created" + Style.RESET_ALL)
+    print(Fore.BLUE + "\nShape of Entire dataset : "+ str(df.shape) + Style.RESET_ALL)
+    print(Fore.BLUE + "Shape of Training dataset : "+ str(train.shape) + Style.RESET_ALL)
+    print(Fore.BLUE + "Shape of Test dataset : "+ str(test.shape) + Style.RESET_ALL)
 
-    X_val_processed = data_processed_val[:, :-1]
-    y_val = data_processed_val[:, -1]
+    # Get/Compute the number of rows to train the model on
+    val_training_data_len = math.ceil(len(train) *.8) # taking 90% of data to train and 10% of data to test
+    val_testing_data_len = len(train) - val_training_data_len
+
+    time_steps = 24
+    val_train, val_test = train.iloc[0:val_training_data_len], train.iloc[(val_training_data_len-time_steps):len(train)]
+
+    print(Fore.MAGENTA + "\n✅ Validation train and test sets created" + Style.RESET_ALL)
+    print(Fore.BLUE + "\nShape of Validation dataset : "+ str(train.shape) + Style.RESET_ALL)
+    print(Fore.BLUE + "Shape of Val. Train dataset : "+ str(val_train.shape) + Style.RESET_ALL)
+    print(Fore.BLUE + "Shape of Val. Test dataset : "+ str(val_test.shape) + Style.RESET_ALL)
+
+    #Scale the all of the data from columns ['nooftrips']
+    Robust_scale = RobustScaler().fit(val_train[[station]])
+    val_train[station] = Robust_scale.transform(val_train[[station]])
+    val_test[station] = Robust_scale.transform(val_test[[station]])
+    test[station] = Robust_scale.transform(test[[station]])
+
+    print(Fore.MAGENTA + "\n✅ y scaled" + Style.RESET_ALL)
+
+    train.to_numpy()
+    test.to_numpy()
+
+    #Split the data into x_train and y_train data sets
+    X_val_train = []
+    y_val_train = []
+
+    for i in range(len(val_train) - time_steps):
+        X_val_train.append(val_train.drop(columns=station).iloc[i:i + time_steps].to_numpy())
+        y_val_train.append(val_train.loc[:,station].iloc[i + time_steps])
+
+    #Convert x_train and y_train to numpy arrays
+    X_val_train = np.array(X_val_train)
+    y_val_train = np.array(y_val_train)
+
+    #Create the x_test and y_test data sets
+    X_val_test = []
+    y_val_test = train.loc[:,station].iloc[val_training_data_len:len(train)]
+
+    for i in range(len(val_test) - time_steps):
+        X_val_test.append(val_test.drop(columns=station).iloc[i:i + time_steps].to_numpy())
+
+    #Convert x_test and y_test to numpy arrays
+    X_val_test = np.array(X_val_test)
+    y_val_test = np.array(y_val_test)
+
+    #Create the x_test and y_test data sets
+    X_test = []
+    y_test = df.loc[:,station].iloc[training_data_len:len(df)]
+
+    for i in range(len(test) - time_steps):
+        X_test.append(test.drop(columns=station).iloc[i:i + time_steps].to_numpy())
+        #y_test.append(test.loc[:,'cnt'].iloc[i + time_steps])
+
+    #Convert x_test and y_test to numpy arrays
+    X_test = np.array(X_test)
+    y_test = np.array(y_test)
+
+    print(Fore.MAGENTA + "\n✅ X and y created" + Style.RESET_ALL)
+    print(Fore.BLUE +'Validation Train data size:'+ Style.RESET_ALL)
+    print(X_val_train.shape, y_val_train.shape)
+    print(Fore.BLUE +'Validation Test data size:'+ Style.RESET_ALL)
+    print(X_val_test.shape, y_val_test.shape)
+    print(Fore.BLUE +'Test data size:'+ Style.RESET_ALL)
+    print(X_test.shape, y_test.shape)
 
     # Train model using `model.py`
     model = load_model()
 
     if model is None:
-        model = initialize_model(input_shape=X_train_processed.shape[1:])
+        model = initialize_model(input_shape=X_val_train.shape[1:])
 
     model = compile_model(model, learning_rate=learning_rate)
     model, history = train_model(
-        model, X_train_processed, y_train,
+        model, X_val_train, y_val_train,
         batch_size=batch_size,
         patience=patience,
-        validation_data=(X_val_processed, y_val)
+        validation_data=(X_val_test, y_val_test)
     )
+
+    history_model = history
 
     val_mae = np.min(history.history['val_mae'])
 
     params = dict(
         context="train",
         training_set_size=DATA_SIZE,
-        row_count=len(X_train_processed),
+        row_count=len(X_val_train),
     )
 
     # Save results on the hard drive using taxifare.ml_logic.registry
-    save_results(params=params, metrics=dict(mae=val_mae))
+    save_results(params=params, metrics=dict(mae=val_mae), n_station=station)
 
-    # # Save model weight on the hard drive (and optionally on GCS too!)
-    # save_model(model=model)
+    # Save model weight on the hard drive (and optionally on GCS too!)
+    save_model(model=model,n_station=station)
 
     # # The latest model should be moved to staging
     # if MODEL_TARGET == 'mlflow':
     #     mlflow_transition_model(current_stage="None", new_stage="Staging")
 
-    # print("✅ train() done \n")
+    print("✅ train() done for f{station} \n")
 
-    return data_processed
+
+def evaluate(
+        min_date:str = '2022-01-01',
+        max_date:str = '2023-01-01',
+        stage: str = "Production",
+        station = 'abbey_orchard_street__westminster'
+    ) -> float:
+    """
+    Evaluate the performance of the latest production model on processed data
+    Return MAE as a float
+    """
+    print(Fore.MAGENTA + "\n⭐️ Use case: evaluate" + Style.RESET_ALL)
+
+    model = load_model(stage=stage, n_station=station)
+
+    print("✅ load_model() done \n")
+
+    # min_date = parse(min_date).strftime('%Y-%m-%d') # e.g '2009-01-01'
+    # max_date = parse(max_date).strftime('%Y-%m-%d') # e.g '2009-01-01'
+
+    # # Query your BigQuery processed table and get data_processed using `get_data_with_cache`
+    # query = f"""
+    #     SELECT * EXCEPT(_0)
+    #     FROM {GCP_PROJECT}.{BQ_DATASET}.processed_{DATA_SIZE}
+    #     WHERE _0 BETWEEN '{min_date}' AND '{max_date}'
+    # """
+
+    # data_processed_cache_path = Path(LOCAL_DATA_PATH).joinpath("processed", f"processed_{min_date}_{max_date}_{DATA_SIZE}.csv")
+    # data_processed = get_data_with_cache(
+    #     gcp_project=GCP_PROJECT,
+    #     query=query,
+    #     cache_path=data_processed_cache_path,
+    #     data_has_header=True
+    # )
+
+    # if data_processed.shape[0] == 0:
+    #     print("❌ No data to evaluate on")
+    #     return None
+
+    # data_processed = data_processed.to_numpy()
+
+    # X_new = data_processed[:, :-1]
+    # y_new = data_processed[:, -1]
+
+    # metrics_dict = evaluate_model(model=model, X=X_new, y=y_new)
+    # mae = metrics_dict["mae"]
+
+    # params = dict(
+    #     context="evaluate", # Package behavior
+    #     training_set_size=DATA_SIZE,
+    #     row_count=len(X_new)
+    # )
+
+    # save_results(params=params, metrics=metrics_dict)
+
+    # print("✅ evaluate() done \n")
+
+    return None
