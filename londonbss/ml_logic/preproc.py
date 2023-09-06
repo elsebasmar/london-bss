@@ -9,10 +9,6 @@ import pandas as pd
 
 from colorama import Fore, Style
 
-# TRAIN / VAL /TEST split
-X = pd.read_csv("~/code/elsebasmar/london-bss/raw_data/final_features_df.csv")
-
-
 # ENCODE EVENTS
 
 ##London_zones --> Should that go into params ?? if we use them somewhere else?
@@ -104,7 +100,7 @@ def london_all_encoding(X: pd.DataFrame):
     X["London_zone_East"] = X.apply(lambda x: 1.0 if x['London_all'] == 1.0 else x['London_zone_East'], axis=1)
     X.drop(columns= ["London_all", "event_title", "London_zone"], inplace = True)
 
-    X = X.groupby("timestamp").sum()
+    X = X.groupby("startdate").sum()
 
     return X
 
@@ -138,7 +134,7 @@ def bool_to_int(X: pd.DataFrame):
 
     X['daytime'] = (X['daytime'] == 'daytime').astype(int)
 
-    X = X.groupby("timestamp").sum()
+    X = X.groupby("startdate").sum()
 
     return X
 
@@ -156,7 +152,7 @@ additional_pipeline = make_pipeline(
 
 # ENCODE WEATHER COLUMNS
 def weather_drop_duplicates(X: pd.DataFrame):
-    X = X.groupby("timestamp").agg(pd.Series.mode)
+    X = X.groupby("startdate").agg(pd.Series.mode)
     # print("weather", X.shape)
     return X
 
@@ -180,8 +176,6 @@ events_col_list = ['London_zone_Central', 'London_zone_North', 'London_zone_West
        'London_zone_South_West', 'London_zone_South_East', 'London_zone_East',
        'Event']
 final_col_list =  additional_col_list + events_col_list + weather_columns + untouched_columns
-
-print(final_col_list)
 
 final_preprocessor = make_column_transformer(
         (additional_pipeline, other_columns),

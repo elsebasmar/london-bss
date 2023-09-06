@@ -4,6 +4,7 @@ from google.cloud import bigquery
 from colorama import Fore, Style
 from pathlib import Path
 from londonbss.params import *
+from londonbss.ml_logic.features import get_raw_features
 
 def get_data_with_cache(
         gcp_project:str,
@@ -52,7 +53,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def get_net_balance(df: pd.DataFrame) -> pd.DataFrame:
+def get_net_balance(df: pd.DataFrame, min_date:str, max_date:str) -> pd.DataFrame:
     """
     Getting the total trips that started from each station
     at each hour of the data series
@@ -87,43 +88,47 @@ def get_net_balance(df: pd.DataFrame) -> pd.DataFrame:
 
     print("✅ Balance matrix created")
 
+
+    # Getting raw features
+    raw_features = get_raw_features(start_date=min_date, end_date=max_date)
+
     ## TEMPORARY
-    # Get features from file
-    files_path2 ='../../raw_data/data_1year/'
+    # # Get features from file
+    # files_path2 ='../../raw_data/data_1year/'
 
     # Load features
-    features_preproc = pd.read_csv(files_path2 + 'final_features_preproc_12m.csv')
-    features_preproc.set_index(features_preproc.columns[0],inplace=True)
+    # features_preproc = pd.read_csv(files_path2 + 'final_features_preproc_12m.csv')
+    # features_preproc.set_index(features_preproc.columns[0],inplace=True)
 
     # Change 2s
-    features_preproc["event_title_nan"] = features_preproc["event_title_nan"].apply(lambda x: 1 if x>=1 else 0)
+    # features_preproc["event_title_nan"] = features_preproc["event_title_nan"].apply(lambda x: 1 if x>=1 else 0)
 
-    # Change names
-    features_preproc.rename(columns={"event_title_nan": "no_event"}, inplace=True)
+    # # Change names
+    # features_preproc.rename(columns={"event_title_nan": "no_event"}, inplace=True)
 
-    #Drop Columns
-    features_preproc.drop(columns=['minute','second','London_zone_London_all'], inplace=True)
+    # #Drop Columns
+    # features_preproc.drop(columns=['minute','second','London_zone_London_all'], inplace=True)
 
-    features_preproc.index = pd.to_datetime(features_preproc.index)
+    raw_features.index = pd.to_datetime(raw_features.index)
 
-    df = net_balance.join(features_preproc)
+    # df = net_balance.join(raw_features)
 
-    df=df.dropna()
+    # df=df.dropna()
 
     # Converting the index as date
-    df.index = pd.to_datetime(df.index)
+    # df.index = pd.to_datetime(df.index)
 
-    # Columns to add
-    columns_add = list(net_balance.columns) + FEATURES_ADDED
+    # # Columns to add
+    # columns_add = list(net_balance.columns) + FEATURES_ADDED
 
-    df = df[columns_add]
+    # df = df[columns_add]
 
-    df['hour'] = df.index.hour
-    df['weekday'] = df.index.dayofweek
-    df['day'] = df.index.day
-    df['month'] = df.index.month
+    # df['hour'] = df.index.hour
+    # df['weekday'] = df.index.dayofweek
+    # df['day'] = df.index.day
+    # df['month'] = df.index.month
 
-    return df
+    return net_balance, raw_features  #############
 
 def load_data_to_bq(
         data: pd.DataFrame,
