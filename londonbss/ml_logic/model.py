@@ -17,6 +17,32 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 end = time.perf_counter()
 print(f"\n✅ TensorFlow loaded ({round(end - start, 2)}s)")
 
+################ TIME SERIES - DARTS ################
+
+def initialize_model_darts(y, X) -> Model:
+    """
+    Initialize the time series
+    """
+    print(Fore.MAGENTA +'\n Initializing Model'+ Style.RESET_ALL)
+
+    # SARIMAX Model
+    SARIMAX_model = auto_arima(y, exogenous=X,
+                            start_p=1, start_q=1,
+                            max_p=7, max_q=7,
+                            d=1, max_d=7,
+                            trace=True,
+                            error_action='ignore',
+                            suppress_warnings=True,
+                            stepwise=True
+                            )
+
+    print("\n✅ Model initialized")
+
+    return SARIMAX_model
+
+
+
+
 
 ################ TIME SERIES #####################
 
@@ -83,7 +109,9 @@ def train_model_series(
 def evaluate_model_series(
         model: Model,
         X: np.ndarray,
-        y: np.ndarray
+        y: np.ndarray,
+        start: int,
+        end: int
     ) -> Tuple[Model, dict]:
     """
     Evaluate trained model performance on the dataset
@@ -169,7 +197,6 @@ def train_model(
     print(f"\n✅ Model trained on {len(X)} rows with min val MAE: {round(np.min(history.history['val_mae']), 2)}")
 
     return model, history
-
 
 def evaluate_model(
         model: Model,

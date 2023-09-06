@@ -192,7 +192,12 @@ def fit_transform_features(X: pd.DataFrame, stage):
         X_processed = final_preprocessor.transform(X)
     elif stage == "test":
         X_processed = final_preprocessor.transform(X)
+    elif stage == "pred":
+        X_processed = final_preprocessor.transform(X)
     else:
         print("You didn't provide a stage(train, val or test)")
 
     return pd.DataFrame(X_processed), final_col_list
+
+def get_preprocessor():
+    return final_preprocessor, final_col_list

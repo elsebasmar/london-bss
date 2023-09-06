@@ -5,7 +5,8 @@ python-dateutil
 google.cloud.bigquery
 colorama
 pyarrow
-
+statsmodels
+pmdarima
 
 # Google Cloud
 google-cloud-storage
