@@ -264,7 +264,11 @@ def processing(
     file_path = f'{LOCAL_DATA_PATH}/X_pred.csv'
     X_pred=pd.read_csv(file_path)
     X_pred.fillna(value=0,inplace=True)
-
+    X_pred["year"] = X_pred["startdate"].dt.year
+    X_pred["month"] = X_pred["startdate"].dt.month
+    X_pred["day"] = X_pred["startdate"].dt.day
+    X_pred["hour"] = X_pred["startdate"].dt.hour
+    X_pred["weekday"] = X_pred["startdate"].dt.weekday
     pipeline = joblib.load('tranformer.pkl')
     X_pred.set_index('startdate',inplace=True)
     X_pred_processed = pd.DataFrame(pipeline.transform(X_pred))
@@ -744,7 +748,7 @@ def pred(X_pred: pd.DataFrame, n_station:str) -> np.ndarray:
 
     if X_pred is None:
         X_pred = pd.DataFrame(dict(
-        pickup_datetime=[pd.Timestamp("2013-07-06 17:18:00", tz='UTC')],
+        pickup_datetime=[pd.startdate("2013-07-06 17:18:00", tz='UTC')],
         pickup_longitude=[-73.950655],
         pickup_latitude=[40.783282],
         dropoff_longitude=[-73.984365],
