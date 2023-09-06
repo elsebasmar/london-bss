@@ -138,117 +138,180 @@ def train(
         print("❌ Not enough processed data retrieved to train on")
         return None
 
-    # Create my y and X
-    y = y_data_processed[[station]]
-    y.set_index(y_data_processed['startdate'], inplace=True)
-    X = X_data_processed
-    X.set_index('startdate', inplace=True)
+    # Load data from Train, Val and Test
 
-    X_train = X['2020-01-01':'2022-01-01']
-    X_val = X['2022-01-02':'2022-07-01'] # Time step of one day for Validation
-    X_test = X['2022-07-02':'2023-01-01'] # Time step of one day for Test
+    # Loading the Train
+    query = f"""
+        SELECT *
+        FROM {GCP_PROJECT}.{BQ_DATASET}.processed_train_{station}_{DATA_SIZE}
+        WHERE startdate BETWEEN '{min_date}' AND '{max_date}'
+        ORDER BY startdate ASC
+    """
 
-    y_train = y['2020-01-01':'2022-01-01']
-    y_val = y['2022-01-02':'2022-07-01'] # Time step of one day for Validation
-    y_test = y['2022-07-02':'2023-01-01'] # Time step of one day for Test
+    X_cache_path = Path(LOCAL_DATA_PATH).joinpath("processed", f"processed_train_{station}_{min_date}_{max_date}_{DATA_SIZE}.csv")
+    df_train = get_data_with_cache(
+        gcp_project=GCP_PROJECT,
+        query=query,
+        cache_path=X_cache_path,
+        data_has_header=True
+    )
 
-    # Transforming our y values
-    Robust_scale = RobustScaler().fit(y_train)
-    y_train_processed = pd.DataFrame(Robust_scale.transform(y_train))
-    y_val_processed = pd.DataFrame(Robust_scale.transform(y_val))
-    y_test_processed = pd.DataFrame(Robust_scale.transform(y_test))
+    df_train.set_index('startdate',inplace=True)
 
-    # Recovering index for y
-    y_train_processed.index = y_train.index
-    y_train_processed.columns = y_train.columns
+    # Loading the validation
+    query = f"""
+        SELECT *
+        FROM {GCP_PROJECT}.{BQ_DATASET}.processed_val_{station}_{DATA_SIZE}
+        WHERE startdate BETWEEN '{min_date}' AND '{max_date}'
+        ORDER BY startdate ASC
+    """
 
-    y_val_processed.index = y_val.index
-    y_val_processed.columns = y_val.columns
+    X_cache_path = Path(LOCAL_DATA_PATH).joinpath("processed", f"processed_val_{station}_{min_date}_{max_date}_{DATA_SIZE}.csv")
+    df_val = get_data_with_cache(
+        gcp_project=GCP_PROJECT,
+        query=query,
+        cache_path=X_cache_path,
+        data_has_header=True
+    )
 
-    y_test_processed.index = y_test.index
-    y_test_processed.columns = y_test.columns
+    df_val.set_index('startdate',inplace=True)
 
-    print(Fore.MAGENTA + "\n✅ ys processed" + Style.RESET_ALL)
+    # Loading the test
+    query = f"""
+        SELECT *
+        FROM {GCP_PROJECT}.{BQ_DATASET}.processed_test_{station}_{DATA_SIZE}
+        WHERE startdate BETWEEN '{min_date}' AND '{max_date}'
+        ORDER BY startdate ASC
+    """
 
-    # Transforming features
-    X_train_processed, X_train_columns = fit_transform_features(X_train,'train')
-    X_val_processed, X_val_columns = fit_transform_features(X_val,'val')
-    X_test_processed, X_test_columns = fit_transform_features(X_test,'test')
+    X_cache_path = Path(LOCAL_DATA_PATH).joinpath("processed", f"processed_test_{station}_{min_date}_{max_date}_{DATA_SIZE}.csv")
+    df_test = get_data_with_cache(
+        gcp_project=GCP_PROJECT,
+        query=query,
+        cache_path=X_cache_path,
+        data_has_header=True
+    )
 
-    # Recovering index for X
-    X_train_processed.index = X_train.index.unique().sort_values()
-    X_train_processed.columns = X_val_columns
+    df_test.set_index('startdate',inplace=True)
 
-    X_val_processed.index = X_val.index.unique().sort_values()
-    X_val_processed.columns = X_train_columns
+    if df_train.shape[0] == 0:
 
-    X_test_processed.index = X_test.index.unique().sort_values()
-    X_test_processed.columns = X_test_columns
+        # Create my y and X
+        y = y_data_processed[[station]]
+        y.set_index(y_data_processed['startdate'], inplace=True)
+        X = X_data_processed
+        X.set_index('startdate', inplace=True)
 
-    print(Fore.MAGENTA + "\n✅ Xs processed" + Style.RESET_ALL)
+        X_train = X['2020-01-01':'2022-01-01']
+        X_val = X['2022-01-02':'2022-07-01'] # Time step of one day for Validation
+        X_test = X['2022-07-02':'2023-01-01'] # Time step of one day for Test
 
-    # Creating Data Set for Prediction
-    steps = -24
+        y_train = y['2020-01-01':'2022-01-01']
+        y_val = y['2022-01-02':'2022-07-01'] # Time step of one day for Validation
+        y_test = y['2022-07-02':'2023-01-01'] # Time step of one day for Test
 
-    y_train_processed_pred = y_train_processed.copy()
-    y_train_processed_pred[y_train_processed_pred.columns[0]]=y_train_processed_pred[[y_train_processed_pred.columns[0]]].shift(steps)
+        # Transforming our y values
+        Robust_scale = RobustScaler().fit(y_train)
+        y_train_processed = pd.DataFrame(Robust_scale.transform(y_train))
+        y_val_processed = pd.DataFrame(Robust_scale.transform(y_val))
+        y_test_processed = pd.DataFrame(Robust_scale.transform(y_test))
 
-    y_val_processed_pred = y_val_processed.copy()
-    y_val_processed_pred[y_val_processed_pred.columns[0]]=y_val_processed_pred[[y_val_processed_pred.columns[0]]].shift(steps)
+        # Recovering index for y
+        y_train_processed.index = y_train.index
+        y_train_processed.columns = y_train.columns
 
-    y_test_processed_pred = y_test_processed.copy()
-    y_test_processed_pred[y_test_processed_pred.columns[0]]=y_test_processed_pred[[y_test_processed_pred.columns[0]]].shift(steps)
+        y_val_processed.index = y_val.index
+        y_val_processed.columns = y_val.columns
 
-    # Merging
-    df_train = y_train_processed_pred.join(X_train_processed).dropna()
+        y_test_processed.index = y_test.index
+        y_test_processed.columns = y_test.columns
+
+        print(Fore.MAGENTA + "\n✅ ys processed" + Style.RESET_ALL)
+
+        # Transforming features
+        X_train_processed, X_train_columns = fit_transform_features(X_train,'train')
+        X_val_processed, X_val_columns = fit_transform_features(X_val,'val')
+        X_test_processed, X_test_columns = fit_transform_features(X_test,'test')
+
+        # Recovering index for X
+        X_train_processed.index = X_train.index.unique().sort_values()
+        X_train_processed.columns = X_val_columns
+
+        X_val_processed.index = X_val.index.unique().sort_values()
+        X_val_processed.columns = X_train_columns
+
+        X_test_processed.index = X_test.index.unique().sort_values()
+        X_test_processed.columns = X_test_columns
+
+        print(Fore.MAGENTA + "\n✅ Xs processed" + Style.RESET_ALL)
+
+        # Creating Data Set for Prediction
+        steps = -24
+
+        y_train_processed_pred = y_train_processed.copy()
+        y_train_processed_pred[y_train_processed_pred.columns[0]]=y_train_processed_pred[[y_train_processed_pred.columns[0]]].shift(steps)
+
+        y_val_processed_pred = y_val_processed.copy()
+        y_val_processed_pred[y_val_processed_pred.columns[0]]=y_val_processed_pred[[y_val_processed_pred.columns[0]]].shift(steps)
+
+        y_test_processed_pred = y_test_processed.copy()
+        y_test_processed_pred[y_test_processed_pred.columns[0]]=y_test_processed_pred[[y_test_processed_pred.columns[0]]].shift(steps)
+
+        # Merging
+        df_train = y_train_processed_pred.join(X_train_processed).dropna()
+
+        load_data_to_bq(
+            df_train,
+            gcp_project=GCP_PROJECT,
+            bq_dataset=BQ_DATASET,
+            table=f'processed_train_{station}_{DATA_SIZE}',
+            truncate=True
+        )
+
+        df_val = y_val_processed_pred.join(X_val_processed).dropna()
+
+        load_data_to_bq(
+            df_val,
+            gcp_project=GCP_PROJECT,
+            bq_dataset=BQ_DATASET,
+            table=f'processed_val_{station}_{DATA_SIZE}',
+            truncate=True
+        )
+
+        df_test = y_test_processed_pred.join(X_test_processed).dropna()
+
+        load_data_to_bq(
+            df_test,
+            gcp_project=GCP_PROJECT,
+            bq_dataset=BQ_DATASET,
+            table=f'processed_test_{station}_{DATA_SIZE}',
+            truncate=True
+        )
+
+        print(Fore.MAGENTA + "\n✅ Date Merged Done" + Style.RESET_ALL)
+
+        print(Fore.BLUE + "Shape of Training dataset : X = "+
+                        str(y_train_processed.shape) + " y = "+
+                        str(X_train_processed.shape)+Style.RESET_ALL)
+
+        print(Fore.BLUE + "Shape of Validation dataset : X = "+
+                        str(y_val_processed.shape) + " y = "+
+                        str(X_val_processed.shape)+Style.RESET_ALL)
+
+        print(Fore.BLUE + "Shape of Test dataset : X = "+
+                        str(y_test_processed.shape) + " y = "+
+                        str(X_test_processed.shape)+Style.RESET_ALL)
+
+    #Creating set of X an Y
     y_train_processed = df_train[[df_train.columns[0]]]
     X_train_processed = df_train.drop(columns=[df_train.columns[0]])
 
-    load_data_to_bq(
-        df_train,
-        gcp_project=GCP_PROJECT,
-        bq_dataset=BQ_DATASET,
-        table=f'processed_train_{station}_{DATA_SIZE}',
-        truncate=True
-    )
-
-    df_val = y_val_processed_pred.join(X_val_processed).dropna()
     y_val_processed = df_val[[df_val.columns[0]]]
     X_val_processed = df_val.drop(columns=[df_val.columns[0]])
 
-    load_data_to_bq(
-        df_val,
-        gcp_project=GCP_PROJECT,
-        bq_dataset=BQ_DATASET,
-        table=f'processed_val_{station}_{DATA_SIZE}',
-        truncate=True
-    )
-
-    df_test = y_test_processed_pred.join(X_test_processed).dropna()
     y_test_processed = df_test[[df_test.columns[0]]]
     X_test_processed = df_test.drop(columns=[df_test.columns[0]])
 
-    load_data_to_bq(
-        df_test,
-        gcp_project=GCP_PROJECT,
-        bq_dataset=BQ_DATASET,
-        table=f'processed_test_{station}_{DATA_SIZE}',
-        truncate=True
-    )
-
-    print(Fore.MAGENTA + "\n✅ Date Merged Done" + Style.RESET_ALL)
-
-    print(Fore.BLUE + "Shape of Training dataset : X = "+
-                    str(y_train_processed.shape) + " y = "+
-                    str(X_train_processed.shape)+Style.RESET_ALL)
-
-    print(Fore.BLUE + "Shape of Validation dataset : X = "+
-                    str(y_val_processed.shape) + " y = "+
-                    str(X_val_processed.shape)+Style.RESET_ALL)
-
-    print(Fore.BLUE + "Shape of Test dataset : X = "+
-                    str(y_test_processed.shape) + " y = "+
-                    str(X_test_processed.shape)+Style.RESET_ALL)
 
     test_adf(y_test_processed[y_test_processed.columns[0]], "Bike status")
 
@@ -264,7 +327,7 @@ def train(
     print("✅ train() done for f{station} \n")
 
 
-
+    '''
     # # Create the x_test and y_test data sets
 
     # # Training
@@ -450,7 +513,7 @@ def train(
 
     # print("✅ train() done for f{station} \n")
 
-
+    '''
 
 def evaluate(
         min_date:str = '2022-01-01',
