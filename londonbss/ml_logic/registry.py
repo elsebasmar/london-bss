@@ -6,6 +6,7 @@ import pickle
 from colorama import Fore, Style
 from tensorflow import keras
 from google.cloud import storage
+from statsmodels.tsa.statespace import sarimax
 
 from londonbss.params import *
 
@@ -49,11 +50,12 @@ def load_model(stage:str, n_station:str) -> keras.Model :
         blobs = list(client.get_bucket(BUCKET_NAME).list_blobs(prefix="model"))
 
         try:
-            latest_blob = max(blobs, key=lambda x: x.updated)
+            files = [x for x in blobs if x.name.split('-')[-1].split('.')[0]==n_station]
+            latest_blob = max(files, key=lambda x: x.updated)
             latest_model_path_to_save = os.path.join(LOCAL_REGISTRY_PATH, latest_blob.name)
             latest_blob.download_to_filename(latest_model_path_to_save)
 
-            latest_model = keras.models.load_model(latest_model_path_to_save)
+            latest_model = sarimax.SARIMAXResults.load(latest_model_path_to_save)
 
             print("✅ Latest model downloaded from cloud storage")
 
@@ -120,7 +122,7 @@ def save_results(params: dict, metrics: dict, n_station:str) -> None:
     print("✅ Results saved locally")
 
 
-def save_model(model: keras.Model , n_station:str) -> None:
+def save_model(model , n_station:str) -> None:
     """
     Persist trained model locally on the hard drive at f"{LOCAL_REGISTRY_PATH}/models/{timestamp}.h5"
     - if MODEL_TARGET='gcs', also persist it in your bucket on GCS at "models/{timestamp}.h5" --> unit 02 only

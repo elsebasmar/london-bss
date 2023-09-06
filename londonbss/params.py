@@ -32,9 +32,12 @@ DTYPES_RAW = {
     "_EndStationName": "object",
     "_Nooftrips": "int8"
 }
-FEATURES_ADDED = ['temperature', 'rainfall', 'snowfall',
-                    'cloudcover','wind_speed', 'wind_direction','weekday',
-                    'strike', 'school_holidays']
+
+FEATURES_ADDED = ['temperature', 'rainfall', 'snowfall', 'cloudcover', 'wind_speed',
+       'wind_direction', 'date', 'year', 'month', 'day', 'hour', 'weekday',
+       'daytime', 'event_title', 'event_start_date', 'event_end_date',
+       'event_location', 'event_latitude', 'event_longitude', 'elisabeth_line',
+       'lockdown', 'school_holidays', 'strike']
 
 LOCAL_REGISTRY_PATH =  os.path.join(os.path.expanduser('~'), "code", "elsebasmar", "london-bss","training_outputs")
 

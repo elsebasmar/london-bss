@@ -12,9 +12,100 @@ from tensorflow import keras
 from keras import Model, Sequential, layers, regularizers, optimizers
 from keras.callbacks import EarlyStopping
 
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
 end = time.perf_counter()
 print(f"\n✅ TensorFlow loaded ({round(end - start, 2)}s)")
 
+
+################ TIME SERIES #####################
+
+from statsmodels.tsa.stattools import adfuller
+from pmdarima.arima import auto_arima
+
+def test_adf(series, title=''):
+    dfout = {}
+    dftest = adfuller(series.dropna(), autolag='AIC', regression='ct')
+    for key,val in dftest[4].items():
+        dfout[f'critical value ({key})']=val
+    if dftest[1]<=0.05:
+        print(Fore.MAGENTA + "\n✅ Strong evidence against Null Hypothesis"+ Style.RESET_ALL)
+        print(Fore.BLUE +"\nReject Null Hypothesis - Data is Stationary"+ Style.RESET_ALL)
+        print(Fore.BLUE +"Data is Stationary "+ title + Style.RESET_ALL)
+    else:
+        print("\n❌ Strong evidence for  Null Hypothesis")
+        print("\nAccept Null Hypothesis - Data is not Stationary")
+        print("Data is NOT Stationary for ", title)
+
+def initialize_model_series(y, X) -> Model:
+    """
+    Initialize the time series
+    """
+    print(Fore.MAGENTA +'\n Initializing Model'+ Style.RESET_ALL)
+
+    # SARIMAX Model
+    SARIMAX_model = auto_arima(y, exogenous=X,
+                            start_p=1, start_q=1,
+                            max_p=7, max_q=7,
+                            d=1, max_d=7,
+                            trace=True,
+                            error_action='ignore',
+                            suppress_warnings=True,
+                            stepwise=True
+                            )
+
+    print("\n✅ Model initialized")
+
+    return SARIMAX_model
+
+def train_model_series(
+        best_model: Model,
+        X: np.ndarray,
+        y: np.ndarray,
+    ) -> Tuple[Model, dict]:
+    """
+    Fit the model and return a tuple (fitted_model, history)
+    """
+    print(Fore.BLUE + "\nTraining model..." + Style.RESET_ALL)
+
+    model= SARIMAX(y,
+                    exog=X,
+                    order=best_model.get_params()['order'],
+                    enforce_invertibility=False, enforce_stationarity=False,
+                    seasonal_order=best_model.get_params()['seasonal_order'])
+
+    results= model.fit()
+
+    print(f"\n✅ Model trained")
+
+    return model , results
+
+def evaluate_model_series(
+        model: Model,
+        X: np.ndarray,
+        y: np.ndarray
+    ) -> Tuple[Model, dict]:
+    """
+    Evaluate trained model performance on the dataset
+    """
+
+    print(Fore.BLUE + f"\nEvaluating model on {len(X)} rows..." + Style.RESET_ALL)
+
+    if model is None:
+        print(f"\n❌ No model to evaluate")
+        return None
+
+    test_size = X.shape[0]
+
+    predictions = model.predict(exog=X)
+    # loss = metrics["loss"]
+    # mae = metrics["mae"]
+
+    print(f"✅ Model evaluated")
+
+    return predictions
+
+##############  LSTM - MODEL ########################
 def initialize_model(input_shape: tuple) -> Model:
     """
     Initialize the Neural Network with random weights
