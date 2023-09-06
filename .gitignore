@@ -1,5 +1,6 @@
 raw_data/
 data/
+training_outputs/
 
 # ignore csv
 *.csv
