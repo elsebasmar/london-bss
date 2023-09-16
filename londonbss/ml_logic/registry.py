@@ -7,6 +7,7 @@ from colorama import Fore, Style
 from tensorflow import keras
 from google.cloud import storage
 from statsmodels.tsa.statespace import sarimax
+from darts.models import NBEATSModel
 
 from londonbss.params import *
 
@@ -162,3 +163,14 @@ def save_model(model , n_station:str) -> None:
         return None
 
     return None
+
+def get_local_model(station_name='eagle_wharf_road__hoxton',n=24):
+
+    local_model_directory = os.path.join(LOCAL_DATA_PATH, "models")
+    model_loaded = NBEATSModel.load(local_model_directory+f"/{station_name}_model.pkl")
+
+    pred = model_loaded.predict(n=n)
+
+    values = pred.all_values().ravel()
+
+    return values

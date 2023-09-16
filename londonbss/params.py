@@ -27,6 +27,7 @@ GCR_MEMORY = os.environ.get("GCR_MEMORY")
 ##################  CONSTANTS  #####################
 COLUMN_NAMES_RAW = ['_StartDate','_StartStationName', '_EndStationName', '_Nooftrips']
 LOCAL_DATA_PATH = os.path.join(os.path.expanduser('~'), "code", "elsebasmar", "london-bss","raw_data")
+
 DTYPES_RAW = {
     "_StartStationName": "object",
     "_EndStationName": "object",
