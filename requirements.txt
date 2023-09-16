@@ -1,6 +1,5 @@
 # Three dimension arrays
 xarray
-tensorly
 python-dateutil
 google.cloud.bigquery
 colorama
