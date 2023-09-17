@@ -49,7 +49,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
         '_Nooftrips':'nooftrips'
     })
 
-    print("✅ data cleaned")
+    print("✅ Data cleaned")
 
     return df
 
@@ -88,47 +88,14 @@ def get_net_balance(df: pd.DataFrame, min_date:str, max_date:str) -> pd.DataFram
 
     print("✅ Balance matrix created")
 
-
     # Getting raw features
     raw_features = get_raw_features(start_date=min_date, end_date=max_date)
 
-    ## TEMPORARY
-    # # Get features from file
-    # files_path2 ='../../raw_data/data_1year/'
-
-    # Load features
-    # features_preproc = pd.read_csv(files_path2 + 'final_features_preproc_12m.csv')
-    # features_preproc.set_index(features_preproc.columns[0],inplace=True)
-
-    # Change 2s
-    # features_preproc["event_title_nan"] = features_preproc["event_title_nan"].apply(lambda x: 1 if x>=1 else 0)
-
-    # # Change names
-    # features_preproc.rename(columns={"event_title_nan": "no_event"}, inplace=True)
-
-    # #Drop Columns
-    # features_preproc.drop(columns=['minute','second','London_zone_London_all'], inplace=True)
-
     raw_features.index = pd.to_datetime(raw_features.index)
 
-    # df = net_balance.join(raw_features)
+    print("✅ Raw features adquired.")
 
-    # df=df.dropna()
-
-    # Converting the index as date
-    # df.index = pd.to_datetime(df.index)
-
-    # # Columns to add
-    # columns_add = list(net_balance.columns) + FEATURES_ADDED
-
-    # df = df[columns_add]
-
-    # df['hour'] = df.index.hour
-    # df['weekday'] = df.index.dayofweek
-    # df['day'] = df.index.day
-    # df['month'] = df.index.month
-
-    return net_balance, raw_features  #############
+    return net_balance, raw_features
 
 def load_data_to_bq(
         data: pd.DataFrame,
@@ -182,6 +149,10 @@ def load_data_to_bq(
 
     return result
 
+
+#### TO-DO
+
+# Figure out if this function has impact in any other file
 def get_stations_info():
     response= requests.get('https://api.tfl.gov.uk/BikePoint/')
     stations = response.json()
