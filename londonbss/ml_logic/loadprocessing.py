@@ -204,6 +204,8 @@ def get_processed_data(
         data_has_header=True
     )
 
+    df_processed["startdate"] = pd.to_datetime(df_processed["startdate"]).dt.tz_localize(None)
+
     print(Fore.BLUE + "\nProcessed data loaded and a copy was saved locally" + Style.RESET_ALL)
 
     return df_processed
