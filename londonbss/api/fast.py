@@ -1,14 +1,10 @@
 import pandas as pd
+import json
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from londonbss.ml_logic.registry import get_local_model
+from londonbss.ml_logic.registry import load_model
 
 app = FastAPI()
-
-# Loading model on startup
-
-# Model eagle_wharf_road__hoxton
-app.state.predictd = get_local_model()
 
 # Allowing all middleware is optional, but good practice for dev purposes
 app.add_middleware(
@@ -22,18 +18,21 @@ app.add_middleware(
 
 @app.get("/predict")
 def predict(
-    number_hours: int
+    station_name: str
     ):      # 1
     """
     Make a single course prediction.
     Assumes `pickup_datetime` is provided as a string by the user in "%Y-%m-%d %H:%M:%S" format
     Assumes `pickup_datetime` implicitly refers to the "US/Eastern" timezone (as any user in New York City would naturally write)
     """
-    num = number_hours
+    app.state.model = load_model(stage='production', n_station=str(station_name))
 
-    pred = app.state.predictd
+    model = app.state.model
+    assert model is not None
 
-    return {'predictions' : int(1)}
+    pred_es = model.predict(n=3984).to_json()
+
+    return json.loads(pred_es)
 
 @app.get("/")
 def root():
