@@ -10,6 +10,7 @@ GCP_PROJECT_WAGON = os.environ.get("GCP_PROJECT_WAGON")
 GCP_REGION = os.environ.get("GCP_REGION")
 BQ_DATASET = os.environ.get("BQ_DATASET")
 BQ_DATASET_VM = os.environ.get("BQ_DATASET_VM")
+BQ_TABLE_VM = os.environ.get("BQ_TABLE_VM")
 BQ_TABLE = os.environ.get("BQ_TABLE")
 BQ_REGION = os.environ.get("BQ_REGION")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
@@ -41,7 +42,3 @@ FEATURES_ADDED = ['temperature', 'rainfall', 'snowfall', 'cloudcover', 'wind_spe
        'lockdown', 'school_holidays', 'strike']
 
 LOCAL_REGISTRY_PATH =  os.path.join(os.path.expanduser('~'), "code", "elsebasmar", "london-bss","training_outputs")
-
-# COLUMN_NAMES_RAW = ['fare_amount','pickup_datetime', 'pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude', 'passenger_count']
-
-# DTYPES_PROCESSED = np.float32

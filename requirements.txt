@@ -6,7 +6,25 @@ colorama
 pyarrow
 statsmodels
 pmdarima
+darts
+fastapi
+pandas
+numpy
+datetime
+requests
+pathlib
+matplotlib
+darts
+joblib
+tensorflow
+scikit-learn
+schedule
 
 # Google Cloud
 google-cloud-storage
-protobuf==3.20.1
+protobuf==3.20.3
+
+#Predict in production
+fastapi
+pytz
+uvicorn

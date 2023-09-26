@@ -1,0 +1,29 @@
+dropout: 0
+hidden_dim: 20
+input_chunk_length: 24
+input_size: 3
+likelihood: null
+lr_scheduler_cls: null
+lr_scheduler_kwargs: null
+name: LSTM
+nr_params: 1
+num_layers: 1
+optimizer_cls: !!python/name:torch.optim.adam.Adam ''
+optimizer_kwargs:
+  lr: 0.001
+output_chunk_length: 1
+target_size: 1
+train_sample_shape:
+- !!python/tuple
+  - 672
+  - 1
+- !!python/tuple
+  - 672
+  - 2
+- !!python/tuple
+  - 672
+  - 2
+- null
+- !!python/tuple
+  - 672
+  - 1
