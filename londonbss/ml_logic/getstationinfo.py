@@ -3,11 +3,12 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime
-import schedule
 from londonbss.ml_logic.data import load_data_to_bq
 from londonbss import params
+import schedule
 
-def thing_you_wanna_do():
+def get_status():
+
     response= requests.get('https://api.tfl.gov.uk/BikePoint/')
     stations = response.json()
     time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -57,9 +58,7 @@ def thing_you_wanna_do():
                     , truncate= False
     )
 
-    return data
+schedule.every().minute.do(get_status)
 
-# schedule.every().hour.do(thing_you_wanna_do)
-
-# while True:
-#     schedule.run_pending()
+while True:
+    schedule.run_pending()
